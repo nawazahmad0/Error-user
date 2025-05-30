@@ -1,43 +1,59 @@
 module.exports.config = {
-    name: "autotranslate",
-    version: "1.0.1",
-    hasPermssion: 0,
-    credits: "Nawaz Boss",
-    description: "Auto translates message like 'text -> hi'",
-    commandCategory: "media",
-    usages: "text -> lang",
-    cooldowns: 3,
-    usePrefix: false
+  name: "hindi",
+  version: "1.0.1",
+  hasPermssion: 0,
+  credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+  description: "Text translation",
+  commandCategory: "media",
+  usages: "[Text]",
+  cooldowns: 5,
+  dependencies: {
+    "request": ""
+  },
+  usePrefix: false
 };
 
 module.exports.handleEvent = async ({ api, event }) => {
-    const request = require("request");
-    const msg = event.body;
+  const request = global.nodemodule["request"];
+  const content = event.body;
 
-    if (!msg || !msg.includes("->")) return;
+  if (!content && event.type !== "message_reply") return;
 
-    const split = msg.split("->");
-    const translateThis = split[0].trim();
-    const lang = split[1]?.trim();
+  let translateThis, lang;
 
-    if (!translateThis || !lang) return;
+  if (event.type === "message_reply") {
+    translateThis = event.messageReply.body;
+    if (content.includes("-> ")) {
+      lang = content.substring(content.indexOf("-> ") + 3);
+    } else {
+      lang = global.config.language || "hi";
+    }
+  } else if (content.includes(" -> ")) {
+    translateThis = content.slice(0, content.indexOf(" ->"));
+    lang = content.substring(content.indexOf(" -> ") + 4);
+  } else {
+    return;
+  }
 
-    const url = encodeURI(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang}&dt=t&q=${translateThis}`);
+  request(
+    encodeURI(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&q=${translateThis}`),
+    (err, response, body) => {
+      if (err) return api.sendMessage("❌ Error occurred!", event.threadID, event.messageID);
 
-    request(url, (err, response, body) => {
-        if (err) return api.sendMessage("❌ Error during translation!", event.threadID, event.messageID);
+      try {
+        const retrieve = JSON.parse(body);
+        let text = '';
+        retrieve[0].forEach(item => {
+          if (item[0]) text += item[0];
+        });
 
-        try {
-            const data = JSON.parse(body);
-            let translatedText = '';
-            data[0].forEach(item => { if (item[0]) translatedText += item[0]; });
-
-            const fromLang = (data[2] === data[8][0][0]) ? data[2] : data[8][0][0];
-            api.sendMessage(`🌐 ${translatedText}\n📝 ${fromLang} ➜ ${lang.toUpperCase()}`, event.threadID, event.messageID);
-        } catch (e) {
-            api.sendMessage("⚠️ Translation failed. Try again later!", event.threadID, event.messageID);
-        }
-    });
+        const fromLang = (retrieve[2] === retrieve[8][0][0]) ? retrieve[2] : retrieve[8][0][0];
+        api.sendMessage(` ${text}\n - 🍂🍂 ${fromLang} to 𝐇𝐢𝐧𝐝𝐢🍂🍂`, event.threadID, event.messageID);
+      } catch (e) {
+        return api.sendMessage("⚠️ Translation failed!", event.threadID, event.messageID);
+      }
+    }
+  );
 };
 
-module.exports.run = () => {}; // जरूरी है लेकिन खाली रहेगा
+module.exports.run = () => {};
