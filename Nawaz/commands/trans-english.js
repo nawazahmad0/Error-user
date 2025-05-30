@@ -1,51 +1,38 @@
 module.exports.config = {
-  name: "translate",
-  version: "1.1.1",
-  hasPermssion: 0,
-  credits: "Nawaz Boss",
-  description: "Translate text using Google Translate API",
-  commandCategory: "tools",
-  usages: "[text] -> [en]",
-  cooldowns: 2
+	name: "english",
+	version: "1.0.1",
+	hasPermssion: 0,
+	credits: "𝐃𝐚𝐫𝐤 𝐑𝐮𝐥𝐞𝐱 𝐊𝐢𝐧𝐠 𝐀𝐧𝐮𝐩",
+	description: "Text translation",
+	commandCategory: "media",
+	usages: "[Text]",
+	cooldowns: 5,
+	dependencies: {
+		"request":  ""
+	}
 };
 
-module.exports.handleEvent = async ({ api, event }) => {
-  const request = global.nodemodule["request"];
-  const content = event.body;
-
-  // ✅ Only trigger if '->' is present in message (normal or reply)
-  if (!content || !content.includes("->")) return;
-
-  let translateThis, lang;
-
-  if (event.type === "message_reply") {
-    translateThis = event.messageReply.body;
-    lang = content.split("->")[1]?.trim() || "en";
-  } else {
-    translateThis = content.split("->")[0]?.trim();
-    lang = content.split("->")[1]?.trim() || "en";
-  }
-
-  request(
-    encodeURI(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang}&dt=t&q=${translateThis}`),
-    (err, response, body) => {
-      if (err) return api.sendMessage("❌ Error occurred while translating.", event.threadID, event.messageID);
-
-      try {
-        const data = JSON.parse(body);
-        let translatedText = '';
-        data[0].forEach(item => {
-          if (item[0]) translatedText += item[0];
-        });
-
-        const fromLang = (data[2] === data[8][0][0]) ? data[2] : data[8][0][0];
-
-        api.sendMessage(` ${translatedText}\n- 🍂${fromLang} to ${lang}🍂`, event.threadID, event.messageID);
-      } catch (e) {
-        return api.sendMessage("⚠️ Translation failed. Please check format or try again.", event.threadID, event.messageID);
-      }
-    }
-  );
-};
-
-module.exports.run = () => {};
+module.exports.run = async ({ api, event, args }) => {
+	const request = global.nodemodule["request"];
+	var content = args.join(" ");
+	if (content.length == 0 && event.type != "message_reply") return global.utils.throwError(this.config.name, event.threadID,event.messageID);
+	var translateThis = content.slice(0, content.indexOf(" ->"));
+	var lang = content.substring(content.indexOf(" -> ") + 4);
+	if (event.type == "message_reply") {
+		translateThis = event.messageReply.body
+		if (content.indexOf("-> ") !== -1) lang = content.substring(content.indexOf("-> ") + 3);
+		else lang = global.config.language;
+	}
+	else if (content.indexOf(" -> ") == -1) {
+		translateThis = content.slice(0, content.length)
+		lang = global.config.language;
+	}
+	return request(encodeURI(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang}&dt=t&q=${translateThis}`), (err, response, body) => {
+		if (err) return api.sendMessage("An error has occurred!", event.threadID, event.messageID);
+		var retrieve = JSON.parse(body);
+		var text = '';
+		retrieve[0].forEach(item => (item[0]) ? text += item[0] : '');
+		var fromLang = (retrieve[2] === retrieve[8][0][0]) ? retrieve[2] : retrieve[8][0][0]
+		api.sendMessage(` ${text}\n -  🍂${fromLang} to ${lang}🍂`, event.threadID, event.messageID);
+	});
+}
