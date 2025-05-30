@@ -31,7 +31,7 @@ module.exports.handleEvent = async function({ api, event }) {
       // Send request to Google Translate API
       return request(
           encodeURI(
-              `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang}&dt=t&q=${translateThis}`
+              `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&q=${translateThis}`
           ),
           (err, response, body) => {
               if (err) {
