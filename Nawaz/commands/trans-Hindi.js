@@ -26,7 +26,7 @@ module.exports.handleEvent = async function({ api, event }) {
       }
 
       const translateThis = content;
-      const lang = "en"; // Target language is always hindi
+      const lang = "hi"; // Target language is always hindi
 
       // Send request to Google Translate API
       return request(
