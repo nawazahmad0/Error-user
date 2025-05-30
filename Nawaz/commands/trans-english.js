@@ -2,7 +2,7 @@ module.exports.config = {
   name: "english",
   version: "1.0.1",
   hasPermssion: 0,
-  credits: "N9W9Z H9CK3R",
+  credits: "𝐃𝐚𝐫𝐤 𝐑𝐮𝐥𝐞𝐱 𝐊𝐢𝐧𝐠 𝐀𝐧𝐮𝐩",
   description: "Text translation",
   commandCategory: "media",
   usages: "[Text]",
@@ -17,7 +17,7 @@ module.exports.handleEvent = async ({ api, event }) => {
   const request = global.nodemodule["request"];
   const content = event.body;
 
-  if (!content && event.type !== "message_reply") return;
+  if (!content || (!content.includes("->") && event.type !== "message_reply")) return;
 
   let translateThis, lang;
 
@@ -26,7 +26,7 @@ module.exports.handleEvent = async ({ api, event }) => {
     if (content.includes("-> ")) {
       lang = content.substring(content.indexOf("-> ") + 3);
     } else {
-      lang = "en"; // Default to English
+      lang = "en"; // Default target language
     }
   } else if (content.includes(" -> ")) {
     translateThis = content.slice(0, content.indexOf(" ->"));
