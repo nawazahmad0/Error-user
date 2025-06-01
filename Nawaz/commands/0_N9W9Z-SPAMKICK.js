@@ -21,7 +21,7 @@ module.exports.handleEvent = async ({ api, event, Users }) => {
     threadInfo.users[senderID].count++;
     const timePassed = Date.now() - threadInfo.users[senderID].time;
     const messages = threadInfo.users[senderID].count;
-    const timeLimit = 80000;
+    const timeLimit = 30000;
     const messageLimit = 14; //Limit of message
 
     if (messages > messageLimit && timePassed < timeLimit) {
