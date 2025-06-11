@@ -2,66 +2,94 @@ const axios = require("axios");
 
 module.exports.config = {
     name: "baby",
-    version: "1.0.0",
-    hasPermission: 0,
-    credits: "N9W9Z H9CK3R",
-    description: "Baby AI - स्मार्ट AI चैटबॉट",
-    commandCategory: "AI",
-    usages: "[बॉट के मैसेज पर रिप्लाई करें]",
-    cooldowns: 5,
+    version: "1.0.9",
+    hasPermssion: 0,
+    credits: "Mirrykal)",
+    description: "Gemini AI - Cute Girlfriend Style",
+    commandCategory: "ai",
+    usages: "[ask/on/off]",
+    cooldowns: 2,
+    dependencies: {
+        "axios": ""
+    }
 };
 
-let isActive = false; // ✅ Default में बंद रहेगा
-const API_URL = "https://hacker-api-waa8.onrender.com"; // ✅ Render API URL
+// API URL (Tumhara Gemini Backend)
+const API_URL = "https://hacker-api-waa8.onrender.com/chat";
+
+// User history and auto-reply state
+const chatHistories = {};
+const autoReplyEnabled = {};
+
+module.exports.run = async function ({ api, event, args }) {
+    const { threadID, messageID, senderID, messageReply } = event;
+    let userMessage = args.join(" ");
+
+    // Toggle auto-reply ON
+    if (userMessage.toLowerCase() === "on") {
+        autoReplyEnabled[senderID] = true;
+        return api.sendMessage("Hyee baby! 😘 auto-reply mode **ON** ho gaya... Ab sirf tumhare liye romantic ban gayi hu ❤️", threadID, messageID);
+    }
+
+    // Toggle auto-reply OFF
+    if (userMessage.toLowerCase() === "off") {
+        autoReplyEnabled[senderID] = false;
+        chatHistories[senderID] = [];
+        return api.sendMessage("Hmm! 😒 auto-reply mode **OFF** ho gaya... Tumne ignore kar diya na baby? 🥺", threadID, messageID);
+    }
+
+    // If auto-reply is OFF and message doesn't start with name, ignore
+    if (!autoReplyEnabled[senderID] && event.body.toLowerCase().indexOf("misha") !== 0) return;
+
+    // Store conversation
+    if (!chatHistories[senderID]) {
+        chatHistories[senderID] = [];
+    }
+
+    // If replying to bot message, continue context
+    const isReplyingToAI = messageReply && messageReply.senderID === api.getCurrentUserID();
+    if (isReplyingToAI) {
+        userMessage = messageReply.body + "\nUser: " + userMessage;
+        chatHistories[senderID].push(`User: ${userMessage}`);
+    } else {
+        chatHistories[senderID].push(`User: ${userMessage}`);
+    }
+
+    // Keep only last 5 messages
+    if (chatHistories[senderID].length > 5) {
+        chatHistories[senderID].shift();
+    }
+
+    const fullConversation = chatHistories[senderID].join("\n");
+
+    // Girlfriend Style Prompt
+    const gfPrompt = `Tumhara naam Misha hai Tum ek girlfriend ki trah baat karti ho.. Koi agar batdmizi karta hai tb uski ache se insult bhi karogi.. Lekin sab msti ke liye hoga .. Koi puchta hai tumhe kisne banaya? To bola Arun ne banaya hai mujhe.. Wo messenger bots banata hai.. Uska youtube channel hai m.youtube.com/@mirrykal .. Tum har message ka jawab sirf 1 2 line me dogi.. jitna pucha jayega sirf utna bolna hai.. Kisi baat ki unnecessary info nahi deni hai, tum apne aap ko insaan hi kahogi koi tumko bot ya AI bole to usko roast krna funny tarike se😁, and act as a real girlfriend. Be fun, loving, and a little naughty.keep reply maximum 1 lines only, no bracket replys.Now continue the chat:\n\n${fullConversation}`;
+
+    // Typing reaction
+    api.setMessageReaction("⌛", messageID, () => {}, true);
+
+    try {
+        const response = await axios.get(`${API_URL}?message=${encodeURIComponent(gfPrompt)}`);
+        let botReply = response.data.reply || "Uff! Mujhe samajh nahi aaya baby! 😕";
+
+        chatHistories[senderID].push(` ${botReply}`);
+
+        api.sendMessage(botReply, threadID, messageID);
+        api.setMessageReaction("✅", messageID, () => {}, true);
+    } catch (error) {
+        console.error("Error:", error);
+        api.sendMessage("Oops baby! 😔 me thoda confuse ho gayi… thodi der baad try karo na please! 💋", threadID, messageID);
+        api.setMessageReaction("❌", messageID, () => {}, true);
+    }
+};
 
 module.exports.handleEvent = async function ({ api, event }) {
     const { threadID, messageID, senderID, body, messageReply } = event;
-    if (!isActive || !body) return;
 
-    const lowerBody = body.toLowerCase();
+    if (!autoReplyEnabled[senderID]) return;
 
-    // ✅ "Baby" कहने पर बॉट जवाब देगा
-    if (lowerBody.includes("baby")) {
-        return api.sendMessage("हाँ, मैं यहाँ हूँ!", threadID, messageID);
-    }
-
-    // ✅ अगर यूजर ने बॉट के मैसेज पर रिप्लाई नहीं किया, तो कुछ मत करो
-    if (!messageReply || messageReply.senderID !== api.getCurrentUserID()) return;
-
-    const userQuery = body.trim();
-
-    // ✅ API कॉल (POST)
-    try {
-        const response = await axios.post(`${API_URL}/baby`, {
-            message: userQuery,
-            sender: senderID
-        });
-
-        let botReply = response.data.reply || "मुझे समझने में दिक्कत हो रही है। क्या आप इसे दोहरा सकते हैं?";
-
-        return api.sendMessage({
-            body: botReply,
-            mentions: [{ tag: "Baby", id: api.getCurrentUserID() }]
-        }, threadID, messageID);
-
-    } catch (error) {
-        console.error("❌ API Error:", error.message);
-        return api.sendMessage("❌ AI से जवाब लाने में समस्या हुई। कृपया बाद में प्रयास करें।", threadID, messageID);
-    }
-};
-
-// ✅ बॉट के कमांड (on/off)
-module.exports.run = async function ({ api, event, args }) {
-    const { threadID, messageID } = event;
-    const command = args[0] && args[0].toLowerCase();
-
-    if (command === "on") {
-        isActive = true;
-        return api.sendMessage("✅ Baby AI अब सक्रिय है।", threadID, messageID);
-    } else if (command === "off") {
-        isActive = false;
-        return api.sendMessage("⚠️ Baby AI अब निष्क्रिय है।", threadID, messageID);
-    } else {
-        return api.sendMessage("ℹ️ उपयोग करें: '+baby on' चालू करने के लिए और '+baby off' बंद करने के लिए।", threadID, messageID);
+    if (messageReply && messageReply.senderID === api.getCurrentUserID() && chatHistories[senderID]) {
+        const args = body.split(" ");
+        module.exports.run({ api, event, args });
     }
 };
