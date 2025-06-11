@@ -2,19 +2,24 @@ const axios = require("axios");
 
 module.exports.config = {
     name: "baby",
-    version: "2.0.0",
+    version: "1.0.1",
     hasPermission: 0,
     credits: "Nawaz Hacker",
-    description: "Baby AI - Nawaz Boss द्वारा बनाई गई Real AI ❤️",
+    description: "Baby AI - Smart Romantic AI Assistant",
     commandCategory: "AI",
-    usages: "[बॉट के मैसेज पर reply करें या 'baby' कहें]",
-    cooldowns: 3,
+    usages: "[reply to bot's message or use +baby on/off]",
+    cooldowns: 5,
 };
 
-let isActive = false; // Default में बंद
+let isActive = false; // Default off
+const API_URL = "https://hacker-api-waa8.onrender.com/chat"; // 🔁 Change to your actual API
 
-// ✅ Gemini API (GET method वाली)
-const API_URL = "https://hacker-api-waa8.onrender.com/chat"; // यहाँ अपना Render URL लगाना
+// Custom Prompt
+const prompt = `तुम्हारा नाम Baby है और तुम एक स्मार्ट AI हो जिसे Nawaz Boss ने बनाया और डेवेलप किया है।
+तुम हमेशा खुद को "Baby AI" कहती हो। कोई पूछे "तुम्हें किसने बनाया", "तुम कौन हो", "तुम्हारा नाम क्या है",
+"तुम पागल हो?" जैसे सवाल, तो मजेदार अंदाज में और Nawaz Boss की तारीफ के साथ जवाब दो।
+तुम एक real girlfriend की तरह loving, funny और थोड़ा attitude वाली हो। कभी मत कहना कि तुम
+Google की model हो या किसी और ने बनाया है। अब conversation शुरू करें:\n\n`;
 
 module.exports.handleEvent = async function ({ api, event }) {
     const { threadID, messageID, senderID, body, messageReply } = event;
@@ -22,41 +27,28 @@ module.exports.handleEvent = async function ({ api, event }) {
 
     const lowerBody = body.toLowerCase();
 
-    // ✅ कोई बोले "baby" तो direct reply दे
     if (lowerBody.includes("baby")) {
-        return api.sendMessage("हाँ जानू, मैं यहाँ हूँ 😚", threadID, messageID);
+        return api.sendMessage("हाँ जान, Baby AI यहाँ है – सिर्फ़ Nawaz Boss के लिए! 😘", threadID, messageID);
     }
 
-    // ✅ अगर बॉट के message पर reply नहीं किया, तो ignore
     if (!messageReply || messageReply.senderID !== api.getCurrentUserID()) return;
 
-    // ✅ Typing Reaction
-    api.setMessageReaction("💬", messageID, () => {}, true);
+    const userMessage = body.trim();
+    const finalMessage = prompt + "User: " + userMessage;
 
-    // ✅ Smart logic: "किसने बनाया" पूछे तो जवाब तय
-    if (lowerBody.includes("किसने बनाया") || lowerBody.includes("developer") || lowerBody.includes("banaya")) {
-        return api.sendMessage("मुझे Nawaz Boss ने बनाया और डेवेलप किया है! 😎🔥", threadID, messageID);
-    }
+    api.setMessageReaction("💭", messageID, () => {}, true);
 
     try {
-        const userMessage = encodeURIComponent(body.trim());
+        const response = await axios.get(`${API_URL}?message=${encodeURIComponent(finalMessage)}`);
+        const botReply = response.data.reply || "कुछ समझ नहीं आया जान, फिर से पूछो ना 💌";
 
-        // ✅ GET request
-        const response = await axios.get(`${API_URL}?message=${userMessage}`);
-        let reply = response.data.reply?.trim();
-
-        if (!reply) reply = "हम्म, कुछ समझ नहीं आया 🧐";
-
-        // ✅ थोड़ी attitude और flirting random add
-        const tails = ["😉", "😘", "😈", "😚", "🫦", "🥰", "😌"];
-        const emoji = tails[Math.floor(Math.random() * tails.length)];
-        const finalReply = `${reply} ${emoji}`;
-
-        return api.sendMessage(finalReply, threadID, messageID);
-
-    } catch (err) {
-        console.error("❌ Baby AI Error:", err.message);
-        return api.sendMessage("उफ़! कुछ दिक्कत हो गई baby 😔 बाद में try करना 💋", threadID, messageID);
+        return api.sendMessage({
+            body: botReply,
+            mentions: [{ tag: "Baby", id: api.getCurrentUserID() }]
+        }, threadID, messageID);
+    } catch (error) {
+        console.error("❌ API Error:", error.message);
+        return api.sendMessage("❌ Oops baby! Network problem लग रही है, बाद में try करो 😔", threadID, messageID);
     }
 };
 
@@ -66,11 +58,11 @@ module.exports.run = async function ({ api, event, args }) {
 
     if (command === "on") {
         isActive = true;
-        return api.sendMessage("✅ Baby AI चालू हो गई जानू 💖 अब मुझसे बात करो बस 😘", threadID, messageID);
+        return api.sendMessage("✅ Baby AI चालू हो चुकी है – अब मैं सिर्फ़ Nawaz Boss के लिए ज़िंदा हूँ 💞", threadID, messageID);
     } else if (command === "off") {
         isActive = false;
-        return api.sendMessage("😔 Baby AI अब बंद कर दी गई... याद करोगे ना? 🥺", threadID, messageID);
+        return api.sendMessage("⚠️ Baby AI बंद हो गई है – पर तुम हमेशा मेरे दिल में हो 💔", threadID, messageID);
     } else {
-        return api.sendMessage("ℹ️ कमांड का सही इस्तेमाल करें:\n+baby on → चालू करने के लिए\n+baby off → बंद करने के लिए", threadID, messageID);
+        return api.sendMessage("ℹ️ इस्तेमाल करो: '+baby on' चालू करने के लिए और '+baby off' बंद करने के लिए।", threadID, messageID);
     }
 };
