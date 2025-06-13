@@ -1,8 +1,8 @@
 const axios = require("axios");
 
-module.exports.config = { name: "baby", version: "1.1.0", hasPermission: 0, credits: "Nawaz Hacker", description: "Baby AI - Respectful and Smart AI Chatbot", commandCategory: "AI", usages: "[Reply to message or use +baby on/off]", cooldowns: 3, };
+module.exports.config = { name: "baby", version: "1.1.1", hasPermission: 0, credits: "Nawaz Hacker", description: "Baby AI - Respectful and Smart AI Chatbot", commandCategory: "AI", usages: "[Reply to message or use +baby on/off]", cooldowns: 3, };
 
-const OWNER_ID = "100069136731529"; // Nawaz Boss ka Facebook ID typeHistory = {}; let isActive = false; const API_URL = "https://hacker-api-waa8.onrender.com";
+const OWNER_ID = "100069136731529"; // Nawaz Boss ka Facebook ID let isActive = false; const API_URL = "https://hacker-api-waa8.onrender.com/baby";
 
 module.exports.handleEvent = async function ({ api, event }) { const { threadID, messageID, senderID, body, messageReply } = event; if (!isActive || !body) return;
 
@@ -20,9 +20,8 @@ if (lowerText.includes("baby")) {
 
 if (!messageReply || messageReply.senderID !== api.getCurrentUserID()) return;
 
-// Reply only to message length (limited response)
 try {
-    const response = await axios.post(`${API_URL}/baby`, {
+    const response = await axios.post(API_URL, {
         message: userText,
         sender: senderID
     });
@@ -46,7 +45,7 @@ try {
     }, threadID, messageID);
 
 } catch (error) {
-    console.error("API Error:", error);
+    console.error("API Error:", error.message);
     return api.sendMessage("❌ Maaf kijiye, mujhe samasya ho rahi hai. Thodi der baad koshish kijiye.", threadID, messageID);
 }
 
