@@ -12,7 +12,7 @@ module.exports.config = {
 };
 
 let isActive = false; // Default off
-const API_URL = "https://your-gemini-api.onrender.com/chat"; // 🔁 Change to your actual API
+const API_URL = "https://hacker-api-waa8.onrender.com/chat"; // 🔁 Change to your actual API
 
 // Custom Prompt
 const prompt = `तुम्हारा नाम Baby है और तुम एक स्मार्ट AI हो जिसे Nawaz Boss ने बनाया और डेवेलप किया है।
