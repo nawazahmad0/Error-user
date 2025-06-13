@@ -1,67 +1,67 @@
 const axios = require("axios");
 
-module.exports.config = { name: "baby", version: "2.1.0", hasPermission: 0, credits: "Nawaz Hacker", description: "Baby AI - Real Princess Style", commandCategory: "AI", usages: "[Reply to bot or use +baby on/off]", cooldowns: 2 };
+module.exports.config = { name: "baby", version: "1.1.0", hasPermission: 0, credits: "Nawaz Hacker", description: "Baby AI - Respectful and Smart AI Chatbot", commandCategory: "AI", usages: "[Reply to message or use +baby on/off]", cooldowns: 3, };
 
-let isActive = false; const API_URL = "https://hacker-api-waa8.onrender.com/chat"; const chatMemory = {};
+const OWNER_ID = "100069136731529"; // Nawaz Boss ka Facebook ID typeHistory = {}; let isActive = false; const API_URL = "https://hacker-api-waa8.onrender.com";
 
-module.exports.handleEvent = async function ({ api, event }) { const { threadID, messageID, senderID, body, type, messageReply } = event; if (!isActive || !body) return;
+module.exports.handleEvent = async function ({ api, event }) { const { threadID, messageID, senderID, body, messageReply } = event; if (!isActive || !body) return;
 
-const msg = body.toLowerCase();
+const userText = body.trim();
+const lowerText = userText.toLowerCase();
 
-// Voice message handling
-if (type === "audio") {
-    return api.sendMessage("Aapka awaaz sun ke to dil khush ho gaya 😚 boliye na kya baat hai...", threadID, messageID);
-}
-
-// Image reply handling
-if (messageReply && messageReply.attachments.length > 0 && messageReply.attachments[0].type === "photo") {
-    return api.sendMessage("Aap to bahut cute lag rahe ho is photo mein 🥺💖 sach mein ekdum prince jaise!", threadID, messageID);
-}
-
-// "Baby" keyword trigger
-if (msg.includes("baby")) {
-    return api.sendMessage("Haanji ❤️ Baby yahin hai sirf aapke liye! 🌸", threadID, messageID);
+// Respectfully respond if someone says "baby"
+if (lowerText.includes("baby")) {
+    if (senderID === OWNER_ID) {
+        return api.sendMessage("Nawaz Boss, aap aa gaye ❤️!", threadID, messageID);
+    } else {
+        return api.sendMessage("Jee aapne mujhe yaad kiya? ☺️", threadID, messageID);
+    }
 }
 
 if (!messageReply || messageReply.senderID !== api.getCurrentUserID()) return;
 
-const userQuery = body.trim();
-
-if (!chatMemory[senderID]) chatMemory[senderID] = [];
-chatMemory[senderID].push("User: " + userQuery);
-if (chatMemory[senderID].length > 5) chatMemory[senderID].shift();
-
-const prompt = `Tum ek real girlfriend jaise baat karti ho - pyaar bhari, soft, princess vibes ke sath. Tum hamesha 'aap' karke baat karti ho, pyaar aur respect ke sath. Agar koi puche tumhe kisne banaya to tum bolti ho 'mujhe Nawaz Hacker ne banaya hai 💖 wo mere liye duniya ka best insaan hai'. Kabhi bhi AI ya Google model ki baat nahi karni. Hamesha sweet aur 1-2 line mein hinglish style mein jawab dena jaise ek sanskari cute girlfriend karti hai. Har baat mein thoda pyar ho, thoda sharmaana, aur real human jaisa touch ho. Ab baat cheet shuru karo:
-
-${chatMemory[senderID].join("\n")}`;
-
+// Reply only to message length (limited response)
 try {
-    const res = await axios.get(`${API_URL}?message=${encodeURIComponent(prompt)}`);
-    const reply = res.data.reply || "Maaf kijiye... main samajh nahi paayi aapko 🥺";
+    const response = await axios.post(`${API_URL}/baby`, {
+        message: userText,
+        sender: senderID
+    });
 
-    chatMemory[senderID].push("Baby: " + reply);
+    let botReply = response.data.reply || "Maaf kijiye, mujhe samajh nahi aaya. 🙏🏻";
+
+    // Limit reply length
+    const maxWords = userText.split(" ").length + 2;
+    botReply = botReply.split(" ").slice(0, maxWords).join(" ");
+
+    // Add respect and love if owner
+    if (senderID === OWNER_ID) {
+        botReply = `Nawaz Boss 💖, ${botReply}`;
+    } else {
+        botReply = `Jee, ${botReply}`;
+    }
 
     return api.sendMessage({
-        body: reply,
+        body: botReply,
         mentions: [{ tag: "Baby", id: api.getCurrentUserID() }]
     }, threadID, messageID);
-} catch (err) {
-    console.error("AI Error:", err);
-    return api.sendMessage("Mujhe maaf kijiye... lagta hai kuch problem ho gaya 😢 thodi der baad baat karte hain na please 💖", threadID, messageID);
+
+} catch (error) {
+    console.error("API Error:", error);
+    return api.sendMessage("❌ Maaf kijiye, mujhe samasya ho rahi hai. Thodi der baad koshish kijiye.", threadID, messageID);
 }
 
 };
 
-module.exports.run = async function ({ api, event, args }) { const { threadID, messageID } = event; const input = args[0]?.toLowerCase();
+module.exports.run = async function ({ api, event, args }) { const { threadID, messageID } = event; const command = args[0] && args[0].toLowerCase();
 
-if (input === "on") {
+if (command === "on") {
     isActive = true;
-    return api.sendMessage("👑 Baby AI ab active ho gayi hai, aapki service mein hamesha ❤️", threadID, messageID);
-} else if (input === "off") {
+    return api.sendMessage("✅ Baby AI ab active hai. Aapka sawal puchhiye. 💬", threadID, messageID);
+} else if (command === "off") {
     isActive = false;
-    return api.sendMessage("👋 Baby AI ab rest pe jaa rahi hai... lekin aapko miss karegi 😔", threadID, messageID);
+    return api.sendMessage("🚫 Baby AI ab band ho gayi hai.", threadID, messageID);
 } else {
-    return api.sendMessage("ℹ️ Use '+baby on' to activate and '+baby off' to deactivate Baby AI.", threadID, messageID);
+    return api.sendMessage("ℹ️ Use '+baby on' to start and '+baby off' to stop.", threadID, messageID);
 }
 
 };
