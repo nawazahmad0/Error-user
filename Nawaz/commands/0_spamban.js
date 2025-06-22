@@ -5,7 +5,7 @@ const { createCanvas, loadImage } = require("canvas");
 module.exports.config = {
   name: "user",
   version: "1.3.0",
-  hasPermssion: 1, //
+  hasPermssion: 2, //
   credits: "NAWAZ",
   description: "MADE BY NAWAZ 🙂🤞",
   commandCategory: "System",
