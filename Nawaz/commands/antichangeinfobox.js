@@ -1,23 +1,18 @@
-const fs = require("fs-extra");
 const axios = require("axios");
 
 module.exports = {
   config: {
     name: "antichangeinfobox",
     version: "1.0",
-    author: "Converted by Nawaz Boss",
+    author: "Nawaz Boss",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      en: "Prevent users from changing group info"
-    },
+    shortDescription: { en: "Prevent changes to group info" },
     longDescription: {
-      en: "Enable/disable anti-change group info (avatar, name, emoji, theme, nickname)"
+      en: "Lock group avatar, name, emoji, theme, and nicknames from being changed."
     },
     category: "group",
-    guide: {
-      en: "{pn} [avt|name|emoji|theme|nickname] [on|off]"
-    }
+    guide: { en: "{pn} [avt|name|emoji|theme|nickname] [on|off]" }
   },
 
   onStart: async function ({ api, event, args, threadsData, message }) {
@@ -26,18 +21,18 @@ module.exports = {
     const toggle = args[1];
 
     if (!["avt", "name", "emoji", "theme", "nickname"].includes(type) || !["on", "off"].includes(toggle)) {
-      return message.reply("⚠️ Usage:\n{pn} [avt|name|emoji|theme|nickname] [on|off]");
+      return message.reply("❌ Usage: {pn} [avt|name|emoji|theme|nickname] [on|off]");
     }
 
     let data = await threadsData.get(threadID, "data.antiChangeInfoBox") || {};
+    const info = await api.getThreadInfo(threadID);
 
     if (toggle === "off") {
       delete data[type];
     } else {
-      const info = await api.getThreadInfo(threadID);
       switch (type) {
         case "avt":
-          if (!info.imageSrc) return message.reply("❌ No avatar found for this group.");
+          if (!info.imageSrc) return message.reply("❌ Group has no avatar.");
           data.avt = info.imageSrc;
           break;
         case "name":
@@ -50,18 +45,17 @@ module.exports = {
           data.theme = info.color;
           break;
         case "nickname":
-          const nicknames = {};
-          for (const user of info.userInfo) {
-            const nick = info.nicknames?.[user.id] || "";
-            nicknames[user.id] = nick;
+          const nick = {};
+          for (const u of info.userInfo) {
+            nick[u.id] = info.nicknames?.[u.id] || "";
           }
-          data.nickname = nicknames;
+          data.nickname = nick;
           break;
       }
     }
 
     await threadsData.set(threadID, data, "data.antiChangeInfoBox");
-    return message.reply(`✅ Anti-change for "${type}" has been turned ${toggle}.`);
+    return message.reply(`✅ Anti-change for "${type}" is now "${toggle}".`);
   },
 
   onEvent: async function ({ api, event, threadsData }) {
@@ -77,8 +71,10 @@ module.exports = {
           try {
             const res = await axios.get(data.avt, { responseType: "stream" });
             api.changeGroupImage(res.data, threadID);
-            api.sendMessage("🔒 Avatar change is locked in this group!", threadID);
-          } catch (e) {}
+            api.sendMessage("🔒 Avatar change is locked!", threadID);
+          } catch (e) {
+            console.log("Error resetting avatar:", e.message);
+          }
         }
         break;
 
