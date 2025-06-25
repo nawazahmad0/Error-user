@@ -1,42 +1,38 @@
-const fs = require("fs-extra");
-const path = __dirname + "/../../data/groupProtect.json";
 
-module.exports.config = {
-  name: "groupProtect",
-  eventType: ["log:thread-name", "log:thread-image", "log:thread-color", "log:thread-emoji", "log:user-nickname"],
-  version: "1.0.0",
-  credits: "Nawaz Boss",
-  description: "Protects group from unwanted changes",
-  envConfig: {},
-  dependencies: {}
-};
+const fs = require("fs");
+const path = __dirname + "/../data/groupProtect.json";
 
-module.exports.run = async function ({ api, event }) {
-  const { threadID, logMessageType } = event;
+module.exports = {
+  config: {
+    name: "groupProtect",
+    eventType: ["log:thread-name", "log:thread-image", "log:thread-color", "log:thread-emoji", "log:thread-nickname"],
+    version: "1.0.0",
+    credits: "Nawaz Boss"
+  },
 
-  let protectList = {};
-  if (fs.existsSync(path)) protectList = JSON.parse(fs.readFileSync(path));
+  run: async function({ api, event }) {
+    const threadID = event.threadID;
+    if (!fs.existsSync(path)) return;
+    const protectData = JSON.parse(fs.readFileSync(path));
 
-  if (!protectList[threadID]) return;
+    if (!protectData[threadID]) return;
 
-  try {
-    switch (logMessageType) {
+    switch (event.logMessageType) {
       case "log:thread-name":
-        return api.sendMessage("ðŸš« Group name change is protected!", threadID);
-
+        api.sendMessage("🚫 Group name change is protected!", threadID);
+        break;
       case "log:thread-image":
-        return api.sendMessage("ðŸš« Group image change is protected!", threadID);
-
+        api.sendMessage("🚫 Group image change is protected!", threadID);
+        break;
       case "log:thread-color":
-        return api.sendMessage("ðŸš« Group theme is protected!", threadID);
-
+        api.sendMessage("🚫 Group color change is protected!", threadID);
+        break;
       case "log:thread-emoji":
-        return api.sendMessage("ðŸš« Group emoji is protected!", threadID);
-
-      case "log:user-nickname":
-        return api.sendMessage("ðŸš« Nickname change is not allowed!", threadID);
+        api.sendMessage("🚫 Group emoji change is protected!", threadID);
+        break;
+      case "log:thread-nickname":
+        api.sendMessage("🚫 Nickname change is protected!", threadID);
+        break;
     }
-  } catch (err) {
-    console.error("[GroupProtect Error]", err);
   }
 };
