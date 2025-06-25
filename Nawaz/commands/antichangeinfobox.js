@@ -1,35 +1,30 @@
-const fs = require("fs");
-const path = __dirname + "/../data/groupProtect.json";
-
-// Ensure file exists
-if (!fs.existsSync(path)) fs.writeFileSync(path, "{}");
+const fs = require("fs-extra");
+const path = __dirname + "/../../data/groupProtect.json";
 
 module.exports.config = {
-  name: "antichangeinfobox",
-  version: "1.0",
+  name: "groupProtect",
+  version: "1.0.0",
   hasPermssion: 1,
   credits: "Nawaz Boss",
-  description: "Block group info change like name, emoji, theme, nickname, image.",
+  description: "Enable or disable group protection",
   commandCategory: "group",
-  usages: "antichangeinfobox on/off",
+  usages: "[on/off]",
   cooldowns: 5
 };
 
-module.exports.run = async function ({ api, event, args }) {
+module.exports.run = async ({ api, event, args }) => {
   const threadID = event.threadID;
-  const data = JSON.parse(fs.readFileSync(path));
+  let protectList = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
 
   if (args[0] === "on") {
-    data[threadID] = true;
-    fs.writeFileSync(path, JSON.stringify(data, null, 2));
-    return api.sendMessage("✅ Anti-ChangeInfoBox ENABLED in this group!", threadID);
+    protectList[threadID] = true;
+    fs.writeFileSync(path, JSON.stringify(protectList, null, 2));
+    return api.sendMessage("✅ Group protection ENABLED!", threadID);
+  } else if (args[0] === "off") {
+    delete protectList[threadID];
+    fs.writeFileSync(path, JSON.stringify(protectList, null, 2));
+    return api.sendMessage("❌ Group protection DISABLED!", threadID);
+  } else {
+    return api.sendMessage("🛡 Use: groupProtect on/off", threadID);
   }
-
-  if (args[0] === "off") {
-    delete data[threadID];
-    fs.writeFileSync(path, JSON.stringify(data, null, 2));
-    return api.sendMessage("❌ Anti-ChangeInfoBox DISABLED in this group!", threadID);
-  }
-
-  return api.sendMessage("⚠️ Use: antichangeinfobox on/off", threadID);
 };
