@@ -1,37 +1,34 @@
-
 const fs = require("fs");
-const path = __dirname + "/../data/groupProtect.json";
+const path = __dirname + "/../cache/groupLock.json";
 
-module.exports = {
-  config: {
-    name: "groupProtect",
-    version: "1.0.0",
-    hasPermission: 1,
-    credits: "Nawaz Boss",
-    description: "Toggle group anti-change protection",
-    commandCategory: "group",
-    usages: "[on/off]",
-    cooldowns: 5
-  },
+module.exports.config = {
+  name: "antichangeinfobox",
+  version: "1.0.0",
+  hasPermssion: 1,
+  credits: "Nawaz Boss",
+  description: "Lock group name and avatar",
+  commandCategory: "group",
+  usages: "[on/off]",
+  cooldowns: 5,
+};
 
-  run: async function({ api, event, args }) {
-    const threadID = event.threadID;
-    let protectData = {};
+module.exports.run = async ({ api, event, args }) => {
+  if (!fs.existsSync(path)) fs.writeFileSync(path, "{}");
+  let data = JSON.parse(fs.readFileSync(path));
+  const threadID = event.threadID;
 
-    if (fs.existsSync(path)) {
-      protectData = JSON.parse(fs.readFileSync(path));
-    }
-
-    if (args[0] === "on") {
-      protectData[threadID] = true;
-      fs.writeFileSync(path, JSON.stringify(protectData, null, 2));
-      return api.sendMessage("✅ Group protection ENABLED!", threadID);
-    } else if (args[0] === "off") {
-      delete protectData[threadID];
-      fs.writeFileSync(path, JSON.stringify(protectData, null, 2));
-      return api.sendMessage("❌ Group protection DISABLED!", threadID);
-    } else {
-      return api.sendMessage("⚠️ Usage: groupProtect [on/off]", threadID);
-    }
+  if (args[0] === "off") {
+    delete data[threadID];
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
+    return api.sendMessage("✅ Group lock disabled.", threadID);
   }
+
+  const info = await api.getThreadInfo(threadID);
+  data[threadID] = {
+    name: info.threadName,
+    imageSrc: info.imageSrc || null,
+  };
+
+  fs.writeFileSync(path, JSON.stringify(data, null, 2));
+  return api.sendMessage("🔒 Group name & avatar locked successfully!", threadID);
 };
