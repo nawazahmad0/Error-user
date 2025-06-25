@@ -3,28 +3,40 @@ const path = __dirname + "/../../data/groupProtect.json";
 
 module.exports.config = {
   name: "groupProtect",
+  eventType: ["log:thread-name", "log:thread-image", "log:thread-color", "log:thread-emoji", "log:user-nickname"],
   version: "1.0.0",
-  hasPermssion: 1,
   credits: "Nawaz Boss",
-  description: "Enable or disable group protection",
-  commandCategory: "group",
-  usages: "[on/off]",
-  cooldowns: 5
+  description: "Protects group from unwanted changes",
+  envConfig: {},
+  dependencies: {}
 };
 
-module.exports.run = async ({ api, event, args }) => {
-  const threadID = event.threadID;
-  let protectList = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
+module.exports.run = async function ({ api, event }) {
+  const { threadID, logMessageType } = event;
 
-  if (args[0] === "on") {
-    protectList[threadID] = true;
-    fs.writeFileSync(path, JSON.stringify(protectList, null, 2));
-    return api.sendMessage("✅ Group protection ENABLED!", threadID);
-  } else if (args[0] === "off") {
-    delete protectList[threadID];
-    fs.writeFileSync(path, JSON.stringify(protectList, null, 2));
-    return api.sendMessage("❌ Group protection DISABLED!", threadID);
-  } else {
-    return api.sendMessage("🛡 Use: groupProtect on/off", threadID);
+  let protectList = {};
+  if (fs.existsSync(path)) protectList = JSON.parse(fs.readFileSync(path));
+
+  if (!protectList[threadID]) return;
+
+  try {
+    switch (logMessageType) {
+      case "log:thread-name":
+        return api.sendMessage("ðŸš« Group name change is protected!", threadID);
+
+      case "log:thread-image":
+        return api.sendMessage("ðŸš« Group image change is protected!", threadID);
+
+      case "log:thread-color":
+        return api.sendMessage("ðŸš« Group theme is protected!", threadID);
+
+      case "log:thread-emoji":
+        return api.sendMessage("ðŸš« Group emoji is protected!", threadID);
+
+      case "log:user-nickname":
+        return api.sendMessage("ðŸš« Nickname change is not allowed!", threadID);
+    }
+  } catch (err) {
+    console.error("[GroupProtect Error]", err);
   }
 };
