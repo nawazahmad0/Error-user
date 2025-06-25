@@ -1,38 +1,33 @@
-
 const fs = require("fs");
-const path = __dirname + "/../data/groupProtect.json";
+const axios = require("axios");
+const path = __dirname + "/../cache/groupLock.json";
 
-module.exports = {
-  config: {
-    name: "groupProtect",
-    eventType: ["log:thread-name", "log:thread-image", "log:thread-color", "log:thread-emoji", "log:thread-nickname"],
-    version: "1.0.0",
-    credits: "Nawaz Boss"
-  },
+module.exports.config = {
+  name: "antichangeinfobox",
+  eventType: ["log:thread-name", "log:thread-image"],
+  version: "1.0.0",
+  credits: "Nawaz Boss"
+};
 
-  run: async function({ api, event }) {
-    const threadID = event.threadID;
-    if (!fs.existsSync(path)) return;
-    const protectData = JSON.parse(fs.readFileSync(path));
+module.exports.run = async function ({ api, event }) {
+  if (!fs.existsSync(path)) return;
+  const data = JSON.parse(fs.readFileSync(path));
+  const threadID = event.threadID;
 
-    if (!protectData[threadID]) return;
+  if (!data[threadID]) return;
 
-    switch (event.logMessageType) {
-      case "log:thread-name":
-        api.sendMessage("🚫 Group name change is protected!", threadID);
-        break;
-      case "log:thread-image":
-        api.sendMessage("🚫 Group image change is protected!", threadID);
-        break;
-      case "log:thread-color":
-        api.sendMessage("🚫 Group color change is protected!", threadID);
-        break;
-      case "log:thread-emoji":
-        api.sendMessage("🚫 Group emoji change is protected!", threadID);
-        break;
-      case "log:thread-nickname":
-        api.sendMessage("🚫 Nickname change is protected!", threadID);
-        break;
+  const { name, imageSrc } = data[threadID];
+
+  try {
+    if (event.logMessageType === "log:thread-name") {
+      await api.setTitle(name, threadID);
     }
+
+    if (event.logMessageType === "log:thread-image" && imageSrc) {
+      const res = await axios.get(imageSrc, { responseType: "stream" });
+      await api.changeGroupImage(res.data, threadID);
+    }
+  } catch (e) {
+    console.log("[AntiChangeInfo Error]:", e.message);
   }
 };
