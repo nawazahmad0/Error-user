@@ -1,7 +1,5 @@
 const fs = require("fs");
 const path = __dirname + "/../../../data/groupProtect.json";
-
-// Ensure file exists
 if (!fs.existsSync(path)) fs.writeFileSync(path, "{}");
 
 module.exports.config = {
@@ -13,44 +11,48 @@ module.exports.config = {
     "log:thread-color",
     "log:thread-emoji"
   ],
-  version: "1.0",
+  version: "2.0",
   credits: "Nawaz Boss",
-  description: "Block changes to group info"
+  description: "Protect group info"
 };
 
 module.exports.run = async function ({ api, event }) {
   const threadID = event.threadID;
-  const data = JSON.parse(fs.readFileSync(path));
+  let data = {};
+  try {
+    data = JSON.parse(fs.readFileSync(path));
+  } catch (e) {
+    fs.writeFileSync(path, "{}");
+    data = {};
+  }
 
-  if (!data[threadID]) return; // If protection not enabled for this group
+  if (!data[threadID]) return;
 
   try {
     const info = await api.getThreadInfo(threadID);
-
     switch (event.logMessageType) {
       case "log:thread-name":
         await api.setTitle(info.threadName, threadID);
-        return api.sendMessage("🚫 Group name change blocked!", threadID);
+        return api.sendMessage("🚫 Group name change is blocked!", threadID);
 
       case "log:thread-image":
-        return api.sendMessage("🚫 Group photo change blocked!", threadID);
+        return api.sendMessage("🚫 Group image change is blocked!", threadID);
 
       case "log:user-nickname":
-        const { participantID } = event.logMessageData;
-        const oldNick = info.nicknames[participantID] || "";
-        await api.changeNickname(oldNick, threadID, participantID);
-        return api.sendMessage("🚫 Nickname change blocked!", threadID);
+        const userID = event.logMessageData.participant_id;
+        const oldNick = info.nicknames?.[userID] || "";
+        await api.changeNickname(oldNick, threadID, userID);
+        return api.sendMessage("🚫 Nickname change is blocked!", threadID);
 
       case "log:thread-color":
         await api.changeThreadColor(info.color, threadID);
-        return api.sendMessage("🚫 Theme change blocked!", threadID);
+        return api.sendMessage("🚫 Theme change is blocked!", threadID);
 
       case "log:thread-emoji":
         await api.changeThreadEmoji(info.emoji, threadID);
-        return api.sendMessage("🚫 Emoji change blocked!", threadID);
+        return api.sendMessage("🚫 Emoji change is blocked!", threadID);
     }
   } catch (err) {
-    console.log("[GroupProtect Error]:", err);
-    return api.sendMessage("❌ GroupProtect error: " + err.message, threadID);
+    console.error("❌ Error in groupProtect:", err);
   }
 };
