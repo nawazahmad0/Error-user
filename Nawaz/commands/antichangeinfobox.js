@@ -1,108 +1,72 @@
-const axios = require("axios");
-const fs = require("fs-extra");
+module.exports.config = {
+  name: "groupProtect",
+  version: "1.0.0",
+  hasPermssion: 1,
+  credits: "Nawaz Boss",
+  description: "Protects group from changes in name, emoji, avatar, theme, and nicknames.",
+  commandCategory: "group",
+  usages: "[on/off]",
+  cooldowns: 3
+};
 
-module.exports = {
-  config: {
-    name: "antichangeinfobox",
-    version: "1.0",
-    author: "Nawaz Boss",
-    role: 0,
-    shortDescription: "Lock group info",
-    longDescription: "Prevent group avatar, name, emoji, theme, or nickname from being changed",
-    category: "group",
-    guide: {
-      en: "{pn} [avt|name|emoji|theme|nickname] [on|off]"
-    }
-  },
+let protectStatus = {};
 
-  onStart: async function ({ api, event, args, threadsData, message }) {
-    const { threadID } = event;
-    const type = args[0];
-    const toggle = args[1];
+module.exports.handleEvent = async ({ api, event }) => {
+  const threadID = event.threadID;
 
-    if (!["avt", "name", "emoji", "theme", "nickname"].includes(type) || !["on", "off"].includes(toggle)) {
-      return message.reply(`❌ Usage:\n${global.GoatBot.config.prefix}antichangeinfobox [avt|name|emoji|theme|nickname] [on|off]`);
-    }
+  if (!protectStatus[threadID]) return;
 
-    let data = await threadsData.get(threadID, "data.antiChangeInfoBox") || {};
+  try {
+    const thread = await api.getThreadInfo(threadID);
 
-    if (toggle === "off") {
-      delete data[type];
-    } else {
-      const info = await api.getThreadInfo(threadID);
-      switch (type) {
-        case "avt":
-          if (!info.imageSrc) return message.reply("⚠️ No group avatar found.");
-          data.avt = info.imageSrc;
-          break;
-        case "name":
-          data.name = info.threadName;
-          break;
-        case "emoji":
-          data.emoji = info.emoji;
-          break;
-        case "theme":
-          data.theme = info.color;
-          break;
-        case "nickname":
-          data.nickname = {};
-          for (const user of info.userInfo) {
-            data.nickname[user.id] = info.nicknames?.[user.id] || "";
-          }
-          break;
-      }
+    // Check for name change
+    if (event.logMessageType == "log:thread-name") {
+      await api.setTitle(thread.threadName, threadID);
+      api.sendMessage("⚠️ Group name change is protected!", threadID);
     }
 
-    await threadsData.set(threadID, data, "data.antiChangeInfoBox");
-    return message.reply(`✅ Anti-change for "${type}" set to ${toggle}.`);
-  },
-
-  onEvent: async function ({ api, event, threadsData, role }) {
-    const { threadID, author, logMessageType, logMessageData } = event;
-    if (role >= 1 || author == api.getCurrentUserID()) return;
-
-    const data = await threadsData.get(threadID, "data.antiChangeInfoBox") || {};
-
-    switch (logMessageType) {
-      case "log:thread-image":
-        if (data.avt) {
-          try {
-            const res = await axios.get(data.avt, { responseType: "stream" });
-            await api.changeGroupImage(res.data, threadID);
-            api.sendMessage("🔒 Group avatar change is locked.", threadID);
-          } catch (err) {}
-        }
-        break;
-
-      case "log:thread-name":
-        if (data.name) {
-          api.setTitle(data.name, threadID);
-          api.sendMessage("🔒 Group name change is locked.", threadID);
-        }
-        break;
-
-      case "log:thread-icon":
-        if (data.emoji) {
-          api.changeThreadEmoji(data.emoji, threadID);
-          api.sendMessage("🔒 Emoji change is locked.", threadID);
-        }
-        break;
-
-      case "log:thread-color":
-        if (data.theme) {
-          api.changeThreadColor(data.theme, threadID);
-          api.sendMessage("🔒 Theme color change is locked.", threadID);
-        }
-        break;
-
-      case "log:user-nickname":
-        if (data.nickname) {
-          const { participant_id } = logMessageData;
-          const oldNick = data.nickname[participant_id] || "";
-          api.changeNickname(oldNick, threadID, participant_id);
-          api.sendMessage("🔒 Nickname change is locked.", threadID);
-        }
-        break;
+    // Check for emoji change
+    if (event.logMessageType == "log:thread-emoji") {
+      await api.changeThreadEmoji(thread.emoji, threadID);
+      api.sendMessage("⚠️ Group emoji change is protected!", threadID);
     }
+
+    // Check for theme change
+    if (event.logMessageType == "log:thread-color") {
+      await api.changeThreadColor(thread.color, threadID);
+      api.sendMessage("⚠️ Group theme change is protected!", threadID);
+    }
+
+    // Check for avatar change
+    if (event.logMessageType == "log:thread-image") {
+      await api.sendMessage("⚠️ Group avatar change is protected! Please don't change it.", threadID);
+    }
+
+    // Check for nickname change
+    if (event.logMessageType == "log:user-nickname") {
+      const { participantID } = event.logMessageData;
+      const oldNick = thread.nicknames[participantID] || "";
+      await api.changeNickname(oldNick, threadID, participantID);
+      api.sendMessage("⚠️ Nickname change is not allowed in this group!", threadID);
+    }
+
+  } catch (err) {
+    console.log(err);
   }
+};
+
+module.exports.run = async ({ api, event, args }) => {
+  const threadID = event.threadID;
+
+  if (args[0] === "on") {
+    protectStatus[threadID] = true;
+    return api.sendMessage("✅ Group protection is now ENABLED!", threadID);
+  }
+
+  if (args[0] === "off") {
+    delete protectStatus[threadID];
+    return api.sendMessage("❌ Group protection is now DISABLED!", threadID);
+  }
+
+  return api.sendMessage("⚙️ Usage: groupProtect on/off", threadID);
 };
