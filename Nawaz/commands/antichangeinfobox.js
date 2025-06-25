@@ -1,72 +1,70 @@
+const fs = require("fs");
+const protectData = __dirname + "/../data/groupProtect.json";
+
+if (!fs.existsSync(protectData)) fs.writeFileSync(protectData, "{}");
+
+let protectStatus = JSON.parse(fs.readFileSync(protectData));
+
 module.exports.config = {
   name: "groupProtect",
-  version: "1.0.0",
+  version: "1.1.0",
   hasPermssion: 1,
   credits: "Nawaz Boss",
-  description: "Protects group from changes in name, emoji, avatar, theme, and nicknames.",
+  description: "Protect group from changes (name, emoji, color, nicknames, avatar)",
   commandCategory: "group",
   usages: "[on/off]",
-  cooldowns: 3
+  cooldowns: 5
 };
 
-let protectStatus = {};
-
-module.exports.handleEvent = async ({ api, event }) => {
+module.exports.handleEvent = async function({ api, event }) {
   const threadID = event.threadID;
-
   if (!protectStatus[threadID]) return;
 
-  try {
-    const thread = await api.getThreadInfo(threadID);
+  const threadInfo = await api.getThreadInfo(threadID);
 
-    // Check for name change
-    if (event.logMessageType == "log:thread-name") {
-      await api.setTitle(thread.threadName, threadID);
-      api.sendMessage("⚠️ Group name change is protected!", threadID);
-    }
+  switch (event.logMessageType) {
+    case "log:thread-name":
+      api.setTitle(threadInfo.threadName, threadID);
+      api.sendMessage("❌ Group name is protected!", threadID);
+      break;
 
-    // Check for emoji change
-    if (event.logMessageType == "log:thread-emoji") {
-      await api.changeThreadEmoji(thread.emoji, threadID);
-      api.sendMessage("⚠️ Group emoji change is protected!", threadID);
-    }
+    case "log:thread-emoji":
+      api.changeThreadEmoji(threadInfo.emoji, threadID);
+      api.sendMessage("❌ Group emoji is protected!", threadID);
+      break;
 
-    // Check for theme change
-    if (event.logMessageType == "log:thread-color") {
-      await api.changeThreadColor(thread.color, threadID);
-      api.sendMessage("⚠️ Group theme change is protected!", threadID);
-    }
+    case "log:thread-color":
+      api.changeThreadColor(threadInfo.color, threadID);
+      api.sendMessage("❌ Group theme is protected!", threadID);
+      break;
 
-    // Check for avatar change
-    if (event.logMessageType == "log:thread-image") {
-      await api.sendMessage("⚠️ Group avatar change is protected! Please don't change it.", threadID);
-    }
+    case "log:thread-image":
+      api.sendMessage("❌ Group avatar change is not allowed!", threadID);
+      break;
 
-    // Check for nickname change
-    if (event.logMessageType == "log:user-nickname") {
+    case "log:user-nickname":
       const { participantID } = event.logMessageData;
-      const oldNick = thread.nicknames[participantID] || "";
-      await api.changeNickname(oldNick, threadID, participantID);
-      api.sendMessage("⚠️ Nickname change is not allowed in this group!", threadID);
-    }
-
-  } catch (err) {
-    console.log(err);
+      const oldNick = threadInfo.nicknames[participantID] || "";
+      api.changeNickname(oldNick, threadID, participantID);
+      api.sendMessage("❌ Nickname change is blocked!", threadID);
+      break;
   }
 };
 
-module.exports.run = async ({ api, event, args }) => {
+module.exports.run = async function({ api, event, args }) {
   const threadID = event.threadID;
 
   if (args[0] === "on") {
     protectStatus[threadID] = true;
+    fs.writeFileSync(protectData, JSON.stringify(protectStatus, null, 2));
     return api.sendMessage("✅ Group protection is now ENABLED!", threadID);
   }
 
   if (args[0] === "off") {
     delete protectStatus[threadID];
+    fs.writeFileSync(protectData, JSON.stringify(protectStatus, null, 2));
     return api.sendMessage("❌ Group protection is now DISABLED!", threadID);
   }
 
-  return api.sendMessage("⚙️ Usage: groupProtect on/off", threadID);
+  return api.sendMessage("ℹ️ Use: groupProtect on/off", threadID);
 };
