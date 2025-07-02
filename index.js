@@ -1,6 +1,6 @@
 const { spawn } = require("child_process");
 const axios = require("axios");
-const logger = require("./utils/log"); // 🔧 Logger properly required
+const logger = require("./utils/log");
 
 ///////////////////////////////////////////////////////////
 //========= Create website for dashboard/uptime =========//
@@ -63,16 +63,15 @@ function startBot(message) {
 //========= Check update from Github =========//
 ////////////////////////////////////////////////
 
-(async () => {
-    try {
-        const res = await axios.get("https://raw.githubusercontent.com/priyanshu192/bot/main/package.json");
+axios.get("https://raw.githubusercontent.com/priyanshu192/bot/main/package.json")
+    .then((res) => {
         logger(res.data.name, "[ NAME ]");
         logger(`Version: ${res.data.version}`, "[ VERSION ]");
         logger(res.data.description, "[ DESCRIPTION ]");
-    } catch (err) {
+    })
+    .catch((err) => {
         logger(`Failed to fetch update info: ${err.message}`, "[ Update Error ]");
-    }
+    });
 
-    // Start the bot after update check
-    startBot();
-})();
+// Start the bot
+startBot();
